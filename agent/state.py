@@ -1,5 +1,6 @@
 from langgraph.graph.message import add_messages
 from typing import TypedDict, Dict, List, Any, Annotated, Optional
+from pathlib import Path
 
 
 class AgentState(TypedDict):
@@ -14,3 +15,4 @@ class AgentState(TypedDict):
     tool_calls: Optional[list]
     tool_results: List[str]
     iteration: int # iteration counter
+    project_root: Path
