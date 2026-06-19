@@ -2,10 +2,11 @@ from .state import AgentState
 from typing import Dict, Any
 from pathlib import Path
 from .constants import SECRET_PATTERNS
+from .cli import TestMemory
 import re
 
 
-def check_command(state: AgentState) -> Dict[str, Any] | None:
+def check_command(state: AgentState) -> Dict[str, Any]:
     """checks that the user has entered the command"""
     messages = state.get('messages',[])
     if not messages:
@@ -98,3 +99,53 @@ def safety_validator(state: AgentState) -> Dict[str, Any]:
         "validated_paths": validated_paths,
         "files_to_read": [vp['path'] for vp in validated_paths if vp.get('exists', False)]
     }
+
+# TODO: call llm for more complex planning
+def planner(state, model_name) -> Dict[str, Any]:
+    if state.get('command'):
+        plan = [
+            f"command: {state.command}",
+            "gather context",
+            "analyze the code",
+            f"generate a {state.command}-response"
+        ]
+    return {
+        'command': state.command,
+        'selected_code': state.selected_code,
+        'plan': plan,
+        'next_action': 'continue'
+    }
+
+
+def context_builder(state, memory) -> Dict[str, Any]:
+    """it collects context from memory and determines where to go next"""
+    messages = state.get('messages',[])
+    last_message = messages[-1] if messages else {}
+    query = last_message.get('content', '')
+    command = state.get('command', 'explain')
+    selected_code = state.get('selected_code', '')
+
+    context = {
+        'query': query,
+        'command': command,
+        'selected_code': selected_code,
+        "needs_files": False,
+        "needs_indexing": False,
+        "needs_vector_search": False,
+        "files_to_read": [],
+        "search_terms": []
+    }
+
+    if selected_code and ('import' in selected_code or 'from' in selected_code):
+        context['needs_files'] = True
+        for line in selected_code.split('\n'):
+            if 'import' in line or 'from' in line:
+                # TODO: file parsing
+                ['files_to_read'] = re.findall(
+                    r'(?:(?<=[\s"\'])(?:\/|\.\/)[^\s"\']*|(?<=[\s"\'])[^\s"\']+\.\w+)',
+                    line
+                )
+
+    # TODO: implement whether a search is needed in a vector database needs_vector_search, needs_indexing
+
+    return {"context": context}

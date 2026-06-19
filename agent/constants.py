@@ -32,3 +32,5 @@ SECRET_PATTERNS = [
 ]
 
 FILE_COMMANDS = ['explain', 'refactor', 'test', 'docs', 'improve', 'create', 'new', 'write']
+
+PLAN_PROMPT = ''
